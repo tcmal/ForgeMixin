@@ -1,0 +1,90 @@
+
+// Setup the build script
+buildscript {
+    repositories {
+        jcenter()
+        maven { url = "http://files.minecraftforge.net/maven" }
+        maven { url = "http://repo.spongepowered.org/maven" }
+    }
+    dependencies {
+        classpath 'net.minecraftforge.gradle:ForgeGradle:2.3-SNAPSHOT'
+        classpath 'org.spongepowered:mixingradle:0.5-SNAPSHOT'
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle.forge'
+apply plugin: 'org.spongepowered.mixin' // Deals with refmaps and stuff
+
+// Basic package setup
+group = "com.tcmal.mc" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
+archivesBaseName = "iridescence"
+
+sourceCompatibility = targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
+compileJava {
+    sourceCompatibility = targetCompatibility = '1.8'
+}
+
+// Dependencies
+repositories {
+    maven { url = "http://repo.spongepowered.org/maven" }
+}
+
+// Embed mixin in our jar, but without its dependencies.
+configurations {
+    embed
+    compile.extendsFrom(embed)
+}
+
+dependencies {
+    embed('org.spongepowered:mixin:0.7.8-SNAPSHOT') { transitive = false }
+}
+
+// ForgeGradle setup
+minecraft {
+    version = "1.12.2-14.23.5.2768"
+    runDir = "run"
+    mappings = "snapshot_20171003"
+}
+
+// Replace versions in mcmod.info
+processResources {
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.minecraft.version
+    inputs.property "name", project.name
+    inputs.property "description", project.description
+    inputs.property "modid", project.archivesBaseName
+    inputs.property "url", project.url
+    inputs.property "author", project.author
+
+    from(sourceSets.main.resources.srcDirs) {
+        include 'mcmod.info'
+                
+        expand 'version':project.version, 'mcversion':project.minecraft.version, 'description': project.description,
+            'name': project.name, 'modid': project.archivesBaseName, 'url': project.url, 'author': project.author
+    }
+        
+    from(sourceSets.main.resources.srcDirs) {
+        exclude 'mcmod.info'
+    }
+}
+
+// Mixin setup
+mixin {
+    add sourceSets.main, "iridescence.refmap.json"
+    defaultObfuscationEnv notch
+}
+
+// Set the right properties on our jar to make us a coremod
+jar {
+    manifest.attributes(
+            "TweakClass": 'org.spongepowered.asm.launch.MixinTweaker',
+            "MixinConfigs": 'mixins.iridescence.json',
+            "FMLCorePlugin": "com.tcmal.mc.forgemixin.IridescenceCorePlugin"
+    )
+
+//    Prevent messages about bad signing
+    from(configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
+        exclude "LICENSE-Forge.txt", "META-INF/MANIFSET.MF", "META-INF/maven/**", "META-INF/*.RSA", "META-INF/*.SF"
+    }
+
+}

@@ -1,0 +1,8 @@
+{
+  "package": "com.tcmal.mc.forgemixin.mixins",
+  "refmap": "forgemixin.refmap.json",
+  "compatibilityLevel": "JAVA_8",
+  "client": [
+    "MixinGuiMainMenu"
+  ]
+}
